@@ -11,31 +11,31 @@ program example_from_netcdf
   implicit none
 
   character(len=100):: fileNetCDF
-  integer ncid, stat, VARid, counter
+  integer ncid, stat, id_prior, id_post, id_obs, counter
 
-  integer, parameter :: m=100            ! Size of the ensemble
-  integer, parameter :: n=1000           ! Size of the state vector
+  integer m        ! Size of the ensemble
+  integer n        ! Size of the state vector
   real(kind=8), parameter :: sigma=0.3   ! Observation error standard deviation
 
-  real(kind=8), dimension(n,m) :: prior_ensemble
-  real(kind=8), dimension(n,m) :: posterior_ensemble
+  real(kind=8), allocatable, dimension(:,:) :: prior_ensemble
+  real(kind=8), allocatable, dimension(:,:) :: posterior_ensemble
 
-  real(kind=4), dimension(n,m) :: prior_ensemble_read
-  real(kind=4), dimension(n,m) :: posterior_ensemble_read
-  real(kind=4), dimension(n)   :: observations_read
+  real(kind=4), allocatable, dimension(:,:) :: prior_ensemble_read
+  real(kind=4), allocatable, dimension(:,:) :: posterior_ensemble_read
+  real(kind=4), allocatable, dimension(:)  :: observations_read
 
 
-  real(kind=8), dimension(n) :: reference_truth
-  real(kind=8), dimension(n) :: observations
+  real(kind=8), allocatable, dimension(:) :: reference_truth
+  real(kind=8), allocatable, dimension(:) :: observations
 
   real(kind=8) :: crps,crps_reliability,crps_resolution  ! CRPS score
   real(kind=8) :: rcrv_bias, rcrv_spread                 ! RCRV score
   real(kind=8), dimension(2) :: entropy_score            ! entropy score
   real(kind=8) :: optimality                             ! optimality score
 
-  real(kind=8), dimension(n) :: ens_mean      ! mean of prior ensemble
-  real(kind=8), dimension(n) :: ens_var       ! variance of prior ensemble
-  real(kind=8), dimension(n) :: std_obs       ! observation error standard deviation
+  real(kind=8), allocatable, dimension(:) :: ens_mean      ! mean of prior ensemble
+  real(kind=8), allocatable, dimension(:) :: ens_var       ! variance of prior ensemble
+  real(kind=8), allocatable, dimension(:) :: std_obs       ! observation error standard deviation
   real(kind=8), dimension(2,2) :: binary_pref ! Reference probability distribution for two binary events
 
   integer :: i, j    ! array indices
@@ -56,44 +56,65 @@ program example_from_netcdf
 
 
    fileNetCDF="/g100_scratch/userexternal/gbolzon0/ENSDAM/bin/out.nc"
+   call getDimension(fileNetCDF,'m',m)
+   call getDimension(fileNetCDF,'n',n)
+   allocate(prior_ensemble(n,m))
+   allocate(posterior_ensemble(n,m))
+
+   allocate(prior_ensemble_read(m,n))
+   allocate(posterior_ensemble_read(m,n))
+   allocate(observations_read(n))
+
+   allocate(reference_truth(n))
+   allocate(observations(n))
+   allocate(ens_mean(n))
+   allocate(ens_var(n))
+   allocate(std_obs(n))
+
    counter=0
    stat = nf90_open(fileNetCDF, nf90_nowrite, ncid)
    call handle_err1(stat, counter,FileNetCDF)
-   stat = nf90_inq_varid (ncid, 'prior_ensemble', VARid)
+   stat = nf90_inq_varid (ncid, 'prior_ensemble', id_prior)
    call handle_err2(stat, fileNetCDF,'prior_ensemble')
    call handle_err1(stat, counter,FileNetCDF)
-   stat = nf90_get_var (ncid,VARid,prior_ensemble_read)
+   stat = nf90_get_var (ncid,id_prior,prior_ensemble_read)
+   call handle_err2(stat, fileNetCDF,'prior_ensemble')
+   call handle_err1(stat, counter,FileNetCDF)
 
-   stat = nf90_inq_varid (ncid, 'posterior_ensemble', VARid)
+   stat = nf90_inq_varid (ncid, 'posterior_ensemble', id_post)
    call handle_err2(stat, fileNetCDF,'posterior_ensemble')
    call handle_err1(stat, counter,FileNetCDF)
-   stat = nf90_get_var (ncid,VARid,posterior_ensemble_read)
+   stat = nf90_get_var (ncid,id_post,posterior_ensemble_read)
 
-   stat = nf90_inq_varid (ncid, 'observations', VARid)
+   stat = nf90_inq_varid (ncid, 'observations', id_obs)
    call handle_err2(stat, fileNetCDF,'observations')
    call handle_err1(stat, counter,FileNetCDF)
-   stat = nf90_get_var (ncid,VARid,observations_read)
+   stat = nf90_get_var (ncid,id_post,observations_read)
 
    stat = nf90_close(ncid)
    call handle_err1(stat, counter,FileNetCDF)
 
-   write(*,*) prior_ensemble_read(5,5:10)
+   write(*,*) posterior_ensemble_read(6:10,6)
   do j=1,m
   do i=1,n
-    prior_ensemble(i,j) = real(prior_ensemble_read(i,j),8)
+    prior_ensemble(i,j) = real(prior_ensemble_read(j,i),8)
   enddo
   enddo
   do j=1,m
   do i=1,n
-    posterior_ensemble(i,j) = real(posterior_ensemble_read(i,j),8)
+    posterior_ensemble(i,j) = real(posterior_ensemble_read(j,i),8)
   enddo
+  enddo
+
+  reference_truth=0.0
+  do i=1,n
+     call kiss_gaussian(reference_truth(i))
   enddo
   do i=1,n
+    reference_truth(i) = reference_truth(i) + real(observations_read(i),8)
     observations(i) = real(observations_read(i),8)
   enddo
 
-
-  reference_truth = 0
 
 
 !  do j=1,m
@@ -146,10 +167,10 @@ program example_from_netcdf
 
   ! Compute RCRV score, using reference truth as verification data
   call rcrv_score(rcrv_bias,rcrv_spread,prior_ensemble,reference_truth)
-  print '(a,2f9.5)', 'Prior RCRV bias and spread:    ',rcrv_bias,rcrv_spread
+  print '(a,2e15.5)', 'Prior RCRV bias and spread:    ',rcrv_bias,rcrv_spread
 
   call rcrv_score(rcrv_bias,rcrv_spread,posterior_ensemble,reference_truth)
-  print '(a,2f9.5)', 'Posterior RCRV bias and spread:',rcrv_bias,rcrv_spread
+  print '(a,2e15.5)', 'Posterior RCRV bias and spread:',rcrv_bias,rcrv_spread
 
   ! Compute entropy score
   call events_probability(binary_pref,prior_ensemble,binary_event_outcomes)
@@ -200,6 +221,35 @@ contains
 
 
       !****************************************************************************
+
+
+        SUBROUTINE getDIMENSION(fileNetCDF,dimname,n)
+        use netcdf
+        implicit none
+
+        character,intent(in) :: fileNetCDF*(*) ,dimname*(*)
+        integer,intent(inout) :: n
+
+
+
+        ! local
+
+        integer DIMid,ncid,stat
+        character(LEN=100) junk
+        integer counter
+
+        counter = 0
+        stat = nf90_open(fileNetCDF, nf90_nowrite, ncid)
+       call handle_err1(stat, counter,FileNetCDF)
+        stat = nf90_inq_dimid (ncid, dimname, DIMid)
+       call handle_err1(stat, counter,FileNetCDF)
+        stat = nf90_Inquire_Dimension (ncid, DIMid, junk, n)
+       call handle_err1(stat, counter,FileNetCDF)
+        stat = nf90_close(ncid)
+       call handle_err1(stat, counter,FileNetCDF)
+        END SUBROUTINE getDIMENSION
+
+
         subroutine handle_err1(status,mycount, fileNetCDF)
         USE netcdf
         integer status,mycount
@@ -224,5 +274,6 @@ contains
         endif
 
         end subroutine handle_err2
+
 
 end program example_from_netcdf
