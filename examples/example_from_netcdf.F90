@@ -10,7 +10,7 @@ program example_from_netcdf
 
   implicit none
 
-  character(len=100):: fileNetCDF
+  character(len=1024):: fileNetCDF
   integer ncid, stat, id_prior, id_post, id_obs, counter
 
   integer m        ! Size of the ensemble
@@ -54,8 +54,14 @@ program example_from_netcdf
   call mpi_comm_rank(mpi_comm_world,iproc,mpi_code)
 #endif
 
+! Read command line
+!First, make sure the right number of inputs have been provided
+IF(COMMAND_ARGUMENT_COUNT().NE.1)THEN
+  WRITE(*,*)'ERROR, ONE COMMAND-LINE ARGUMENT (filename) REQUIRED, STOPPING'
+  STOP
+ENDIF
+CALL GET_COMMAND_ARGUMENT(1,fileNetCDF)
 
-   fileNetCDF="/g100_scratch/userexternal/gbolzon0/ENSDAM/bin/out.nc"
    call getDimension(fileNetCDF,'m',m)
    call getDimension(fileNetCDF,'n',n)
    allocate(prior_ensemble(n,m))
