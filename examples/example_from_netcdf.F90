@@ -67,8 +67,8 @@ CALL GET_COMMAND_ARGUMENT(1,fileNetCDF)
    allocate(prior_ensemble(n,m))
    allocate(posterior_ensemble(n,m))
 
-   allocate(prior_ensemble_read(m,n))
-   allocate(posterior_ensemble_read(m,n))
+   allocate(prior_ensemble_read(n,m))
+   allocate(posterior_ensemble_read(n,m))
    allocate(observations_read(n))
 
    allocate(reference_truth(n))
@@ -100,15 +100,17 @@ CALL GET_COMMAND_ARGUMENT(1,fileNetCDF)
    stat = nf90_close(ncid)
    call handle_err1(stat, counter,FileNetCDF)
 
-   write(*,*) posterior_ensemble_read(6:10,6)
+   do i=1,n
+   write(*,*) posterior_ensemble_read(i,1)
+   enddo
   do j=1,m
   do i=1,n
-    prior_ensemble(i,j) = real(prior_ensemble_read(j,i),8)
+    prior_ensemble(i,j) = real(prior_ensemble_read(i,j),8)
   enddo
   enddo
   do j=1,m
   do i=1,n
-    posterior_ensemble(i,j) = real(posterior_ensemble_read(j,i),8)
+    posterior_ensemble(i,j) = real(posterior_ensemble_read(i,j),8)
   enddo
   enddo
 
