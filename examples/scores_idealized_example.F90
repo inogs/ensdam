@@ -26,7 +26,7 @@ program scores_idealized_example
   real(kind=8), dimension(n) :: ens_var       ! variance of prior ensemble
   real(kind=8), dimension(n) :: std_obs       ! observation error standard deviation
   real(kind=8), dimension(2,2) :: binary_pref ! Reference probability distribution for two binary events
-
+  integer outcome(2)
   integer :: i, j    ! array indices
 
   integer :: nproc=1  ! Number of processors
@@ -97,6 +97,10 @@ program scores_idealized_example
   print '(a,2f9.5)', 'Posterior RCRV bias and spread:',rcrv_bias,rcrv_spread
 
   ! Compute entropy score
+  do j=1,m
+  CALL binary_event_outcomes(prior_ensemble(:,j),outcome)
+  write(*,*) 'outcome = ', outcome
+  enddo
   call events_probability(binary_pref,prior_ensemble,binary_event_outcomes)
   print '(a,2f6.3)', 'Prior probability distribution (event 1):    ',binary_pref(1,:)
   print '(a,2f6.3)', 'Prior probability distribution (event 2):    ',binary_pref(2,:)
