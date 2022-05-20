@@ -1,24 +1,30 @@
 
-NETCDF = /opt/modules/netcdf/nompi/netcdf-4.4.1_intel15
+
+
+NETCDF = $(NETCDF_C_HOME)
+NETCDFF = $(NETCDF_FORTRAN_HOME)
 NCDF_LIB=$(NETCDF)/lib
 NCDF_INC=$(NETCDF)/include
+NCDFF_LIB=$(NETCDFF)/lib
+NCDFF_INC=$(NETCDFF)/include
 
 FC = ifort
 LD = ifort
 AR = ar
 FPPFLAGS =
-FFLAGS = -fpic -O3 -fp-model precise -I../include/ -I$(NCDF_INC)
-LDFLAGS = -L$(NCDF_LIB) -lnetcdf -lnetcdff
-SHFLAGS = -shared -L$(NCDF_LIB) -lnetcdf -lnetcdff
+FFLAGS = -fpic -O3 -fp-model precise -module ../include/ -I$(NCDF_INC) -I$(NCDFF_INC)
+LDFLAGS = -L${NCDF_LIB} -L${NCDFF_LIB} -lnetcdf -lnetcdff -lhdf5 -lhdf5_hl
+
+SHFLAGS = -shared -L${NCDF_LIB} -L${NCDFF_LIB} -lnetcdf -lnetcdff -lhdf5 -lhdf5_hl
 ARFLAGS = -rv
 LIST =
 
 INSTALL_DIR=$(HOME)
 
 # f2py settings
-F2PY = f2py
-SIGDIR = signatures/Without_MPI
-WRAPDIR = wrappers/Without_MPI
-FVENDOR = intelem
-FCOMPILER = /opt/intel/composer_xe_2015.3.187/bin/intel64/ifort
-F2PYFLAGS = --fcompiler=$(FVENDOR) --f90exec=$(FCOMPILER)
+# F2PY = f2py
+# SIGDIR = signatures/Without_MPI
+# WRAPDIR = wrappers/Without_MPI
+# FVENDOR = intelem
+# FCOMPILER = /opt/intel/composer_xe_2015.3.187/bin/intel64/ifort
+# F2PYFLAGS = --fcompiler=$(FVENDOR) --f90exec=$(FCOMPILER)
