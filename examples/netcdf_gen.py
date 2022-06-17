@@ -42,17 +42,17 @@ def dumpfile(filename,prior, posterior,obs):
     ncOUT.createDimension("m",m)
     ncOUT.createDimension("n",nPoints)
     ncvar = ncOUT.createVariable("prior_ensemble",'f',('m','n'))
-    ncvar[:] = prior_ensemble
+    ncvar[:] = prior
     ncvar = ncOUT.createVariable("posterior_ensemble",'f',('m','n'))
-    ncvar[:] = posterior_ensemble
+    ncvar[:] = posterior
     ncvar = ncOUT.createVariable("observations",'f',('n',))
     ncvar[:] = obs
     
     ncvar = ncOUT.createVariable("prior_ensemble_log",'f',('m','n'))
-    ncvar[:] = np.log10(prior_ensemble)
+    ncvar[:] = np.log10(prior)
     ncvar = ncOUT.createVariable("posterior_ensemble_log",'f',('m','n'))
-    print(posterior_ensemble.min())
-    ncvar[:] = np.log10(posterior_ensemble)
+    print(posterior.min())
+    ncvar[:] = np.log10(posterior)
     ncvar = ncOUT.createVariable("observations_log",'f',('n',))
     ncvar[:] = np.log10(obs)
     ncOUT.close()
