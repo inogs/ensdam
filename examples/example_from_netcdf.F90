@@ -103,9 +103,8 @@ CALL GET_COMMAND_ARGUMENT(1,fileNetCDF)
    stat = nf90_close(ncid)
    call handle_err1(stat, counter,FileNetCDF)
 
-   do i=50,60
-   write(*,*) posterior_ensemble_read(i,3)
-   enddo
+
+
   do j=1,m
   do i=1,n
     prior_ensemble(i,j) = real(prior_ensemble_read(i,j),8)
@@ -120,10 +119,11 @@ CALL GET_COMMAND_ARGUMENT(1,fileNetCDF)
   reference_truth=0.0
   do i=1, n
      call kiss_gaussian(a)
-     reference_truth(i) = a*0.0000001
+     reference_truth(i) = a*1.e-2  !1.e-7
   enddo
   do i=1,n
     reference_truth(i) = reference_truth(i) + real(observations_read(i),8)
+    !reference_truth(i) = real(observations_read(i),8)
     observations(i) = real(observations_read(i),8)
   enddo
 
@@ -158,39 +158,75 @@ CALL GET_COMMAND_ARGUMENT(1,fileNetCDF)
 
 
 
-  ! ii) Compute innovation for each ensemble member
-  if (.true.) then
-  posterior_ensemble(:,:) = posterior_ensemble(:,:) - prior_ensemble(:,:)
-  ! iii) Compute mean and variance of prior ensemble
-  call ensemble_meanstd(prior_ensemble,ens_mean,ens_var)
-  ens_var = ens_var * ens_var
-  ! iii) Multiply by Kalman gain
-  do j=1,m
-    posterior_ensemble(:,j) = posterior_ensemble(:,j) * ens_var(:) / ( ens_var(:) + sigma*sigma )
-  enddo
-  ! iv) Add prior ensemble
-  posterior_ensemble(:,:) = posterior_ensemble(:,:) + prior_ensemble(:,:)
-  endif
-
   ! Compute CRPS score, using reference truth as verification data
   call crps_score(crps,crps_reliability,crps_resolution,prior_ensemble,reference_truth)
-  print '(a,2f8.5)', 'Prior CRPS reliability and resolution:    ',crps_reliability,crps_resolution
+!  print '(a,2f8.5)', 'Prior CRPS reliability and resolution:    ',crps_reliability,crps_resolution
+   print '(2f12.5)', crps_reliability,crps_resolution
+
 
   call crps_score(crps,crps_reliability,crps_resolution,posterior_ensemble,reference_truth)
-  print '(a,2f8.5)', 'Posterior CRPS reliability and resolution:',crps_reliability,crps_resolution
+!  print '(a,2f8.5)', 'Posterior CRPS reliability and resolution:',crps_reliability,crps_resolution
+    print '(2f12.5)', crps_reliability,crps_resolution
 
   ! Compute RCRV score, using reference truth as verification data
   call rcrv_score(rcrv_bias,rcrv_spread,prior_ensemble,reference_truth)
-  print '(a,2e15.5)', 'Prior RCRV bias and spread:    ',rcrv_bias,rcrv_spread
+!  print '(a,2e15.5)', 'Prior RCRV bias and spread:    ',rcrv_bias,rcrv_spread
+   print '(2f12.5)', rcrv_bias,rcrv_spread
+
 
   call rcrv_score(rcrv_bias,rcrv_spread,posterior_ensemble,reference_truth)
-  print '(a,2e15.5)', 'Posterior RCRV bias and spread:',rcrv_bias,rcrv_spread
+!  print '(a,2e15.5)', 'Posterior RCRV bias and spread:',rcrv_bias,rcrv_spread
+   print '(2f12.5)', rcrv_bias,rcrv_spread
+
+
+  do j=1,m
+  do i=1,n
+    prior_ensemble(i,j) = log10(prior_ensemble(i,j))
+  enddo
+  enddo
+  do j=1,m
+  do i=1,n
+    posterior_ensemble(i,j) = log10(posterior_ensemble(i,j))
+  enddo
+  enddo
+  do i=1,n
+    reference_truth(i) = log10(reference_truth(i))
+    observations(i)    = log10(observations(i))
+  enddo
+
+  ! Compute CRPS score, using reference truth as verification data
+  call crps_score(crps,crps_reliability,crps_resolution,prior_ensemble,reference_truth)
+   print '(2f12.5)', crps_reliability,crps_resolution
+
+
+  call crps_score(crps,crps_reliability,crps_resolution,posterior_ensemble,reference_truth)
+    print '(2f12.5)', crps_reliability,crps_resolution
+
+  ! Compute RCRV score, using reference truth as verification data
+  call rcrv_score(rcrv_bias,rcrv_spread,prior_ensemble,reference_truth)
+   print '(2f12.5)', rcrv_bias,rcrv_spread
+
+
+  call rcrv_score(rcrv_bias,rcrv_spread,posterior_ensemble,reference_truth)
+   print '(2f12.5)', rcrv_bias,rcrv_spread
+
+
+
+  STOP
+
+
+
+
+
+
+
+
+
+
+
+
 
   ! Compute entropy score
-  do j=1,m
-  CALL binary_event_outcomes(prior_ensemble(:,j),outcome)
-  write(*,*) 'outcome = ', outcome
-  enddo
   call events_probability(binary_pref,prior_ensemble,binary_event_outcomes)
   print '(a,2f6.3)', 'Prior probability distribution (event 1):    ',binary_pref(1,:)
   print '(a,2f6.3)', 'Prior probability distribution (event 2):    ',binary_pref(2,:)
