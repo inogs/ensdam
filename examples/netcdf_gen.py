@@ -48,13 +48,6 @@ def dumpfile(filename,prior, posterior,obs):
     ncvar = ncOUT.createVariable("observations",'f',('n',))
     ncvar[:] = obs
     
-    ncvar = ncOUT.createVariable("prior_ensemble_log",'f',('m','n'))
-    ncvar[:] = np.log10(prior)
-    ncvar = ncOUT.createVariable("posterior_ensemble_log",'f',('m','n'))
-    print(posterior.min())
-    ncvar[:] = np.log10(posterior)
-    ncvar = ncOUT.createVariable("observations_log",'f',('n',))
-    ncvar[:] = np.log10(obs)
     ncOUT.close()
 
 
