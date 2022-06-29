@@ -1,4 +1,48 @@
+import argparse
+
+import argparse
+def argument():
+    parser = argparse.ArgumentParser(description = '''
+    Generates netcdf inputs for ensdam
+    ''',
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parser.add_argument(   '--beforedir', '-b',
+                                type = str,
+                                required = True,
+                                help = ''' '''
+                                )
+    parser.add_argument(   '--afterdir', '-a',
+                                type = str,
+                                required = True,
+                                help = ''' '''
+                                )
+    parser.add_argument(   '--outdir', '-o',
+                                type = str,
+                                required = True
+                                )
+    parser.add_argument(   '--maskfile', '-m',
+                                type = str,
+                                required = True,
+                                help = ''' Path of the meshmask file'''
+                                )
+    parser.add_argument(   '--starttime', '-s',
+                                type = str,
+                                required = True,
+                                help = ''' start time in yyyymmdd format'''
+                                )
+    parser.add_argument(   '--endtime', '-e',
+                                type = str,
+                                required = True,
+                                help = ''' end time in yyyymmdd format'''
+                                )
+
+    return parser.parse_args()
+
+args = argument()
+
 import numpy as np
+from commons.utils import addsep
 from commons.mask import Mask
 from commons.submask import SubMask
 from commons.dataextractor import DataExtractor
@@ -10,12 +54,14 @@ from basins import V2 as OGS
 
 SATDIR="/g100_work/OGS_prod100/OPA/V9C/SSPADA/GHOSH/FILES/24/SATELLITE.WEEKLY/"
 
-TI = TimeInterval("20190201","20190311", '%Y%m%d')
+TI = TimeInterval(args.starttime,args.endtime, '%Y%m%d')
 TL = TimeList.fromfilenames(TI, SATDIR, "*nc", prefix="", dateformat="%Y%m%d")
 
+RSTBEFORE=addsep(args.beforedir)
+RST_AFTER=addsep(args.afterdir)
+OUTDIR = addsep(args.outdir)
 
-maskfile="/g100_work/OGS_prod100/OPA/V9C/RUNS_SETUP/PREPROC/MASK/meshmask.nc"
-TheMask=Mask(maskfile)
+TheMask=Mask(args.maskfile)
 coastmask = TheMask.mask_at_level(200.0)
 jpk,jpj,jpi = TheMask.shape
 m = 24
@@ -49,18 +95,6 @@ def dumpfile(filename,prior, posterior,obs):
     ncvar[:] = obs
     
     ncOUT.close()
-
-
-
-
-
-
-
-#RSTBEFORE="/g100_scratch/userexternal/sspada00/GHOSH/20220612.24x116_onlyP/RESTARTS/ENSEMBLE/"
-#POSTERIORI="/g100_scratch/userexternal/sspada00/GHOSH/20220612.24x116_onlyP/ENS_ANALYSIS/ENSEMBLE"
-RSTBEFORE="/g100_scratch/userexternal/gbolzon0/ENSDAM/20220612.24x116_onlyP/BEFORE/CHL_SUP/"
-RST_AFTER="/g100_scratch/userexternal/gbolzon0/ENSDAM/20220612.24x116_onlyP/AFTER/CHL_SUP/"
-OUTDIR = "/g100_scratch/userexternal/gbolzon0/ENSDAM/20220612.24x116_onlyP/ensdam_inputs/"
 
 
 # for ie in range(m):
