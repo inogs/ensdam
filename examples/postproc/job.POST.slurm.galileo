@@ -1,0 +1,58 @@
+#! /bin/bash
+  
+#SBATCH --job-name=POST
+#SBATCH -N1
+#SBATCH --ntasks-per-node=16
+#SBATCH --time=00:30:00
+#SBATCH --mem=300gb
+#SBATCH --account=OGS21_PRACE_P
+#SBATCH --partition=g100_usr_prod
+#SBATCH --qos=g100_qos_dbg
+
+cd $SLURM_SUBMIT_DIR
+HERE=$PWD
+
+git clone git@gitlab.hpc.cineca.it:OGS/postproc.git bin
+cd bin
+git checkout python3
+
+. ./profile.inc
+
+module load autoload
+module load intel/oneapi-2021--binary
+module load intelmpi/oneapi-2021--binary
+module load mkl/oneapi-2021--binary
+module load netcdf/4.7.4--oneapi--2021.2.0-ifort
+module load netcdff/4.5.3--oneapi--2021.2.0-ifort
+source /g100_work/OGS21_PRACE_P/COPERNICUS/py_env_3.6.8/bin/activate
+export PYTHONPATH=$PYTHONPATH:/g100_work/OGS21_PRACE_P/COPERNICUS/bit.sea
+
+unset I_MPI_PMI_LIBRARY
+export UCX_TLS=ib
+export SLURM_PMIX_DIRECT_CONN_UCX=false
+
+export RUN_HOME=20220612.24x116_onlyP
+
+export MASKFILE=/g100_scratch/userexternal/gbolzon0/ENSDAM/meshmask.nc
+
+
+date
+
+
+
+
+MODEL_AVEDIR=/g100_scratch/userexternal/sspada00/GHOSH/${RUN_NAME}/RESTARTS/ENSEMBLE/
+     TMP_DIR=/g100_scratch/userexternal/gbolzon0/ENSDAM/${RUN_NAME}/BEFORE
+  CHLSUP_DIR=$TMP_DIR/CHL_SUP
+
+my_prex_or_die "mpirun -np 8 python var_aggregator.py -l RST*P1l.nc -i $MODEL_AVEDIR -d $HERE/VarDescriptor.xml -t $TMP_DIR  -m $MASKFILE -c $CHLSUP_DIR"
+
+
+MODEL_AVEDIR=/g100_scratch/userexternal/sspada00/GHOSH/20220612.24x116_onlyP/ENS_ANALYSIS/ENSEMBLE
+     TMP_DIR=/g100_scratch/userexternal/gbolzon0/ENSDAM/${RUN_NAME}/AFTER
+  CHLSUP_DIR=$TMP_DIR/CHL_SUP
+
+
+my_prex_or_die "mpirun -np 8 python var_aggregator.py -l RST*P1l.nc -i $MODEL_AVEDIR -d $HERE/VarDescriptor.xml -t $TMP_DIR  -m $MASKFILE -c $CHLSUP_DIR"
+
+
